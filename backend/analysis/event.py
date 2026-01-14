@@ -3,14 +3,17 @@ def event_ranges(df):
         "auto_pts": "Auto Points",
         "tele_pts": "Teleop Points",
         "total_fuel": "Total Points",
-        "climb_auto": "Auto Climb",
-        "climb_tele": "Teleop Climb",
-        "climb_total": "Total Climb"
+        "auto_hang": "Auto Climb",
+        "tele_hang": "Teleop Climb",
+        "climb_total": "Total Climb (RP)"
     }
 
     result = {}
 
     for col, label in metrics.items():
+        if col not in df.columns:
+            continue  # seguridad extra
+
         grouped = df.groupby("team_num")[col]
 
         result[col] = {

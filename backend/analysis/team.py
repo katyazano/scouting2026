@@ -1,22 +1,29 @@
 def team_overview(df, team_num):
-    team_df = df[df["team_num"] == team_num].sort_values("match_num")
+    team_df = df[df["team_num"] == team_num]
 
     if team_df.empty:
-        return {}
+        return {"error": "Team not found"}
 
-    return {
-        "team_num": team_num,
-        "matches_played": len(team_df),
+    overview = {
+        "team_num": int(team_num),
 
-        "avg_auto_pts": round(team_df["auto_pts"].mean(), 2),
-        "avg_tele_pts": round(team_df["tele_pts"].mean(), 2),
-        "avg_total_fuel": round(team_df["total_fuel"].mean(), 2),
+        "matches_played": int(len(team_df)),
 
-        "auto_success_rate": round(team_df["auto_success"].mean(), 2),
-        "climb_success_rate": round((team_df["climb_total"] > 0).mean(), 2),
+        "auto_success_rate": float(team_df["auto_active"].mean()),
 
-        "break_rate": round(team_df["broke_flag"].mean(), 2),
+        "avg_auto_pts": float(team_df["auto_pts"].mean()),
+        "avg_tele_pts": float(team_df["tele_pts"].mean()),
+        "avg_total_fuel": float(team_df["total_fuel"].mean()),
 
-        "primary_role": team_df["adv_role"].mode().iloc[0]
-            if not team_df["adv_role"].mode().empty else "unknown"
+        "break_rate": float(team_df["adv_broke"].mean()),
+
+        "climb_success_rate": float(team_df["auto_hang"].mean()),
+
+        "primary_role": (
+            team_df["adv_role"].mode().iloc[0]
+            if not team_df["adv_role"].mode().empty
+            else "unknown"
+        )
     }
+
+    return overview

@@ -6,6 +6,7 @@ from analysis.event import event_ranges
 from analysis.team import team_overview
 from analysis.anomalies import team_trend
 
+
 app = Flask(__name__)
 CORS(app)
 
