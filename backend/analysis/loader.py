@@ -17,74 +17,61 @@ def load_csv(force=False):
 
     if force or _last_mtime != mtime:
         df = pd.read_csv(CSV_PATH)
-        df.columns = df.columns.str.lower()
 
-        # ---- Cast numéricos seguros ----
-        int_cols = [
+        print("Loaded CSV with", len(df), "rows")
+
+        # --------------------------------------------------
+        # Limpieza básica
+        # --------------------------------------------------
+
+        numeric_cols = [
             "team_num", "match_num",
-            "start_zone",
-            "auto_active", "auto_hang",
-            "auto_pts", "tele_pts", "tele_hang",
-            "adv_broke", "adv_fixed", "adv_climber",
-            "adv_chasis", "adv_intake", "adv_trench",
+            "auto_pts", "tele_pts",
+            "auto_hang", "tele_hang",
+            "auto_active",
+            "adv_broke", "adv_fixed", "adv_climber"
         ]
 
-        for col in int_cols:
+        for col in numeric_cols:
             if col in df.columns:
-                df[col] = (
-                    pd.to_numeric(df[col], errors="coerce")
-                    .replace(-1, pd.NA)
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+        # --------------------------------------------------
+        # Resolver duplicados correctamente
+        # --------------------------------------------------
+        # Regla: nos quedamos con el último registro por team+match
+        # (timestamp más reciente)
+
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+
+            df = (
+                df
+                .sort_values("timestamp")
+                .drop_duplicates(
+                    subset=["team_num", "match_num"],
+                    keep="last"
                 )
-
-        # ---- Strings ----
-        for col in ["adv_role", "adv_hoppercapacity"]:
-            if col in df.columns:
-                df[col] = df[col].astype(str).replace({"nan": None})
-
-        # ---- Shooter ----
-        if "adv_shooter" in df.columns:
-            df["adv_shooter"] = (
-                df["adv_shooter"]
-                .replace({-1: None, "": None})
-                .astype(str)
-                .replace({"nan": None})
+            )
+        else:
+            df = df.drop_duplicates(
+                subset=["team_num", "match_num"],
+                keep="last"
             )
 
-        # ---- Timestamp ----
-        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        print("After deduplication:", len(df), "rows")
 
-        # ---- Derivadas ----
-        df["total_fuel"] = df["auto_pts"] + df["tele_pts"]
-        df["climb_total"] = df["auto_hang"] + df["tele_hang"]
-        df["auto_active"] = df["auto_active"] == 1
+        # --------------------------------------------------
+        # Tipos finales (JSON safe)
+        # --------------------------------------------------
 
-        # ---- Consolidar duplicados ----
-        df = (
-            df.sort_values("timestamp")
-            .groupby(["team_num", "match_num"], as_index=False)
-            .agg({
-                "auto_pts": "mean",
-                "tele_pts": "mean",
-                "total_fuel": "mean",
-                "auto_active": "mean",
-                "auto_hang": "mean",
-                "tele_hang": "mean",
-                "climb_total": "mean",
+        df["team_num"] = df["team_num"].astype(int)
+        df["match_num"] = df["match_num"].astype(int)
 
-                "adv_broke": "max",
-                "adv_fixed": "max",
-                "adv_climber": "max",
-
-                "adv_chasis": "last",
-                "adv_intake": "last",
-                "adv_trench": "last",
-                "adv_shooter": "last",
-                "adv_hoppercapacity": "last",
-                "adv_role": lambda x: x.mode().iloc[0] if not x.mode().empty else None,
-
-                "timestamp": "last",
-            })
-        )
+        df["auto_active"] = df["auto_active"].astype(int)
+        df["auto_hang"] = df["auto_hang"].astype(int)
+        df["tele_hang"] = df["tele_hang"].astype(int)
+        df["adv_broke"] = df["adv_broke"].astype(int)
 
         _cached_df = df
         _last_mtime = mtime
