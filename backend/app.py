@@ -6,13 +6,14 @@ from analysis.event import event_ranges
 from analysis.team import team_overview
 from analysis.anomalies import team_trend
 
+
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/api/event/metrics")
-def event_metrics():
+@app.route("/api/event/metrics/<metric_key>")
+def event_metrics(metric_key):
     df = load_csv()
-    return jsonify(event_ranges(df))
+    return jsonify(event_ranges(df, metric_key))
 
 @app.route("/api/team/<int:team_num>/overview")
 def team_overview_api(team_num):
