@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Layout } from './components/Layout';
+import { Home } from './features/home/Home';
+import { TeamPage } from './features/team/TeamPage'; // <--- Importar
+
+// Configuración del cliente de datos (React Query)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Los datos duran 5 minutos frescos
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          {/* El Layout envuelve todas las rutas */}
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            
+            {/* Aquí agregaremos las otras rutas pronto */}
+            <Route path="teams" element={<div className="text-white">Buscador de Equipos (Pronto)</div>} />
+            <Route path="compare" element={<div className="text-white">Comparativa (Pronto)</div>} />
+            
+            {/* Redirigir cualquier ruta desconocida al inicio */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+
+            <Route path="teams/:teamId" element={<TeamPage />} />
+            {/* Ruta temporal para ver la lista (por ahora redirige a un equipo default para probar) */}
+            <Route path="teams" element={<Navigate to="/teams/4635" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;
