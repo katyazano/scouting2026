@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Users, Home, BarChart3, TrendingUp } from 'lucide-react';
+import { Users, Home, BarChart3, TrendingUp, BarChart2 } from 'lucide-react';
 import clsx from 'clsx';
 
 export const Layout = () => {
@@ -8,6 +8,7 @@ export const Layout = () => {
   const navItems = [
     { label: 'Inicio', path: '/', icon: Home },
     { label: 'Equipos', path: '/teams', icon: Users },
+    { label: 'Análisis', path: '/analysis', icon: BarChart2 }, 
     { label: 'Comparar', path: '/compare', icon: BarChart3 },
     { label: 'Tendencias', path: '/trends', icon: TrendingUp },
   ];

@@ -1,37 +1,37 @@
 import axios from 'axios';
 
-// CAMBIA ESTO: Pon la IP de tu compu donde corre Flask
-// Si estás probando en la misma compu, usa localhost:5000
-// En el evento, será algo como 'http://192.168.1.50:5000'
-const API_URL = 'http://localhost:8000'; 
-
+// 1. Creamos la instancia de Axios
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: 'http://localhost:8000', // Tu Backend Flask
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000, // 5 segundos de espera máximo (redes inestables)
 });
 
-// Definimos la función para obtener el overview
-export const getTeamOverview = async (teamNumber: string) => {
-  const response = await apiClient.get(`/api/team/${teamNumber}/overview`);
-  return response.data;
-};
-
-// Definimos la función para obtener las tendencias (para la gráfica)
-export const getTeamTrend = async (teamNumber: string) => {
-  const response = await apiClient.get(`/api/team/${teamNumber}/trend`);
-  return response.data;
-};
-
+// 2. Definimos la interfaz básica
 export interface TeamSummary {
   team_num: number;
   nickname?: string;
 }
 
+// 3. Funciones exportadas
 export const getTeamsList = async () => {
-  // Ajusta la ruta '/api/teams' si tu backend la llama diferente
   const response = await apiClient.get<TeamSummary[]>('/api/teams');
   return response.data;
+};
+
+// Esta función devuelve los datos DIRECTAMENTE (response.data)
+export const getTeamOverview = async (teamNum: number) => {
+  const response = await apiClient.get(`/api/team/${teamNum}/overview`);
+  return response.data;
+};
+
+export const getEventMetric = async (metricKey: string) => {
+  const response = await apiClient.get(`/api/event/metrics/${metricKey}`);
+  return response.data;
+};
+
+export const getTeamTrend = async (teamNum: string) => {
+    const response = await apiClient.get(`/api/team/${teamNum}/trend`);
+    return response.data;
 };

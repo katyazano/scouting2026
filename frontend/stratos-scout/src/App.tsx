@@ -6,6 +6,7 @@ import { TeamPage } from './features/team/TeamPage'; // <--- Importar
 import { TeamsList } from './features/team/TeamsList';
 import { ComparePage } from './features/compare/ComparePage';
 import { TrendsPage } from './features/trends/TrendsPage';
+import { AnalysisPage } from './features/analysis/AnalysisPage';
 
 // Configuración del cliente de datos (React Query)
 const queryClient = new QueryClient({
@@ -34,6 +35,9 @@ function App() {
             
             {/* Nueva ruta para la página de tendencias */}
             <Route path="trends" element={<TrendsPage />} />
+
+            {/* Nueva ruta para la página de análisis */}
+            <Route path="analysis" element={<AnalysisPage />} />
             
             {/* Redirigir cualquier ruta desconocida al inicio */}
             <Route path="*" element={<Navigate to="/" replace />} />

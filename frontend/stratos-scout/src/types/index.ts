@@ -57,3 +57,16 @@ export interface TeamSummary {
   team_num: number;
   nickname?: string;
 }
+
+// Respuesta del endpoint /api/event/metrics/<key>
+export interface EventMetricData {
+  team_num: number;
+  min: number;
+  avg: number;
+  max: number;
+}
+
+export interface EventMetricResponse {
+  metric: string;
+  data: EventMetricData[];
+}
