@@ -9,6 +9,17 @@ from analysis.anomalies import team_trend
 
 app = Flask(__name__)
 CORS(app)
+# app.py (Backend)
+@app.route('/api/teams', methods=['GET'])
+def get_all_teams():
+    df = load_csv()
+    # Obtiene lista única de equipos del DataFrame
+    teams = df['team_num'].unique()
+    teams.sort()
+    
+    # Devuelve una lista de objetos simple
+    # Nota: Si tienes los nombres (nicknames) en el CSV, inclúyelos aquí
+    return jsonify([{"team_num": int(t)} for t in teams])
 
 @app.route("/api/event/metrics/<metric_key>")
 def event_metrics(metric_key):

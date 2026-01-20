@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 1. Reseteo para asegurar altura y anchura total */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 /* Estilos globales */
 body {
   background-color: #0f172a; /* Fondo oscuro */
@@ -76,3 +84,5 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+

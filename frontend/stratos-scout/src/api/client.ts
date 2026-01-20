@@ -24,3 +24,14 @@ export const getTeamTrend = async (teamNumber: string) => {
   const response = await apiClient.get(`/api/team/${teamNumber}/trend`);
   return response.data;
 };
+
+export interface TeamSummary {
+  team_num: number;
+  nickname?: string;
+}
+
+export const getTeamsList = async () => {
+  // Ajusta la ruta '/api/teams' si tu backend la llama diferente
+  const response = await apiClient.get<TeamSummary[]>('/api/teams');
+  return response.data;
+};

@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { BarChart3, Users, Home, TrendingUp } from 'lucide-react';
+import { Users, Home, BarChart3, TrendingUp } from 'lucide-react';
 import clsx from 'clsx';
 
 export const Layout = () => {
