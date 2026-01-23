@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-CSV_PATH = "data/full_test_scouting_data.csv"
+CSV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "full_test_scouting_data.csv")
 
 _last_mtime = None
 _cached_df = None

@@ -140,5 +140,3 @@ timestamp,team_num,match_num,match_type,alliance,scouter,start_zone,auto_active,
 2026-01-13T10:40:00,222,20,Qualification,Red,KA,1,0,1,7,,40,,3,none,0,1,2,0,turret,1,41-60,2,
 2026-01-13T10:40:00,333,20,Practice,Blue,KA,3,1,1,2,,9,,1,scorer,0,0,1,1,non,0,41-60,2,
 2026-01-13T10:35:00,8293,19,Qualification,Red,KA,1,0,0,5,,33,,1,scorer,0,0,3,1,turret,1,0-20,1,
-,444,444,Playoff,Blue,JIN,3,1,1,10,Autocomm,4,Teleopcomm,2,1,0,0,0,1,0,0,21-40,0,Advcomm
-,8293,4,Practice,Red,CAT,3,1,0,2,Que hueva,5,Que hueva 2,1,2,0,0,1,0,0-1,1,0-20,0,Que hueva 3
