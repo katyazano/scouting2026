@@ -16,7 +16,7 @@ CORS(app)
 def get_all_teams():
     df = load_csv()
     # Obtiene lista única de equipos del DataFrame
-    teams = df['team_num'].unique()
+    teams = df['team_num'].dropna().unique().tolist()
     teams.sort()
     
     # Devuelve una lista de objetos simple

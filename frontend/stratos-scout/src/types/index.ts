@@ -1,6 +1,3 @@
-// src/types/index.ts
-
-// Interfaz para Gráficas (Trend)
 export interface MatchTrend {
   match_num: number;
   match_total_pts: number;
@@ -8,11 +5,16 @@ export interface MatchTrend {
   anomaly: boolean;
 }
 
-// Interfaz para Dashboard y Comparativa
+export interface ScouterComment {
+  match_num: number;
+  scouter: string;
+  text: string;
+}
+
 export interface TeamOverview {
   team_num: number;
-  nickname?: string;
   matches_played: number;
+  comments: ScouterComment[];
   
   overall: {
     avg_total_pts: number;
@@ -21,25 +23,24 @@ export interface TeamOverview {
   auto: {
     avg_total_pts: number;
     success_rate: number;
-    avg_activation_rate?: number;     // Opcional
-    auto_hang_success_rate?: number;  // Opcional
   };
 
   teleop: {
     avg_fuel_pts: number;
     avg_total_pts: number;
     hang_success_rate: number;
-    mode_climb_level?: number;        // Opcional
+    mode_climb_level: number;
   };
 
   advanced: {
     latest: {
         chasis: string;
         climber: boolean;
-        hopper_capacity: string;
+        hopper_capacity: string; // Ahora es string ("61+")
         intake: string;
         shooter: {
-            raw: string;
+            raw: string; // El texto combinado ("TURRET + HOOD")
+            labels: string[];
         };
     };
     reliability: {
@@ -48,17 +49,22 @@ export interface TeamOverview {
         occurred: boolean;
         matches: number[];
       };
+      fixed: {
+        matches: number[];
+      };
+    };
+    typical: {
+      role: string;
+      trench: string;
     };
   };
 }
 
-// Interfaz para la Lista de Equipos
 export interface TeamSummary {
   team_num: number;
   nickname?: string;
 }
 
-// Respuesta del endpoint /api/event/metrics/<key>
 export interface EventMetricData {
   team_num: number;
   min: number;
