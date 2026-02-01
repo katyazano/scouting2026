@@ -39,7 +39,7 @@ def load_csv(force=False):
     mtime = os.path.getmtime(CSV_PATH)
 
     if force or _last_mtime != mtime or _cached_df is None:
-        print(f"📂 Loading: {os.path.basename(CSV_PATH)}")
+        print(f"Loading: {os.path.basename(CSV_PATH)}")
         df = pd.read_csv(CSV_PATH)
 
         # 1. Normalización Numérica

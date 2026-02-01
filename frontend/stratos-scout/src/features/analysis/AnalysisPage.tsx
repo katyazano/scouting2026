@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Scatter, ErrorBar, ZAxis, ReferenceLine, Cell
 } from 'recharts';
-import { BarChart2, Filter, Loader2, AlertCircle, ArrowUpDown, Target, Activity } from 'lucide-react';
+import { BarChart2, Filter, Loader2, AlertCircle, ArrowUpDown, Activity } from 'lucide-react';
 import { getEventMetric } from '../../api/client';
 
 // Opciones de Métricas (Asegúrate que coincidan con las columnas de tu CSV/Backend)

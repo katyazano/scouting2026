@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, X, BarChart3, Plus } from 'lucide-react';
 import { getTeamsList } from '../../api/client';
 import type { TeamOverview } from '../../types';
-import { apiClient } from '../../api/client'; 
+import {apiClient } from '../../api/client'; 
 
 export const ComparePage = () => {
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);

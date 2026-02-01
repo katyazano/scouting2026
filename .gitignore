@@ -6,6 +6,12 @@ __pycache__/
 *.pyo
 *.pyd
 
+# .gitignore
+node_modules
+dist
+.env
+.DS_Store
+
 # Virtual environments
 venv/
 .env/
