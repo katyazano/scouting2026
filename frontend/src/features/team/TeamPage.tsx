@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { 
-  Loader2, WifiOff, Wrench, Cpu, Box, Crosshair, 
+  Loader2, WifiOff, Cpu, Box, Crosshair, 
   AlertTriangle, CheckCircle2, Anchor, Activity, History, MessageSquare 
 } from 'lucide-react';
 import { StatCard } from '../../components/ui/StatCard';

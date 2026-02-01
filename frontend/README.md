@@ -15,7 +15,7 @@ Asegúrate de tener instalado:
   ```
 
 3. Create `.env` file as example
-  VITE_API_URL=[http://127.0.0.1:5000]
+  VITE_API_URL=[http://127.0.0.1:8000]
 
 4. Run Project
 ```console
