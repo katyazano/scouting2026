@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  # Servicio de Python
+  backend:
+    build: ./backend
+    container_name: stratos-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Conectamos tu carpeta local 'data' con el contenedor
+      # Así, si arrastras un CSV nuevo en Windows, el contenedor lo ve al instante.
+      - ./backend/data:/app/data
+    restart: always
+
+  # Servicio de React (Nginx)
+  frontend:
+    build: ./frontend
+    container_name: stratos-frontend
+    ports:
+      - "3000:80" # Accederás por localhost:3000
+    depends_on:
+      - backend
+    restart: always

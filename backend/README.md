@@ -34,3 +34,4 @@ pip install -r requirements.txt
 ```console
 python app.py
 ```
+6. Run the frontend
