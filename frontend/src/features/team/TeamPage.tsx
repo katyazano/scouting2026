@@ -107,7 +107,7 @@ export const TeamPage = () => {
                onMatchClick={(match) => setSelectedMatch(match)} 
              />
            ) : (
-             <div className="p-10 text-slate-500 text-center border border-dashed border-slate-800 rounded-xl">Sin historial</div>
+             <div className="p-10 text-slate-500 text-center border border-dashed border-slate-800 rounded-xl">No record</div>
            )}
            
            {/* --- SCOUT LOG (COMENTARIOS) --- */}

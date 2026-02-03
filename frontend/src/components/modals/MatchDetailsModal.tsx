@@ -56,7 +56,7 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
           <div className="space-y-4">
             {details.auto_comm && (
               <div>
-                <h4 className="text-indigo-300 text-xs font-bold uppercase mb-1">Comentarios Auto</h4>
+                <h4 className="text-indigo-300 text-xs font-bold uppercase mb-1">Auto comments</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 italic">
                   "{details.auto_comm}"
                 </p>
@@ -65,7 +65,7 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
 
             {details.tele_comm && (
               <div>
-                <h4 className="text-emerald-300 text-xs font-bold uppercase mb-1">Comentarios Teleop</h4>
+                <h4 className="text-emerald-300 text-xs font-bold uppercase mb-1">Teleop comments</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 italic">
                   "{details.tele_comm}"
                 </p>
@@ -74,7 +74,7 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
 
             {details.notes && (
               <div>
-                <h4 className="text-slate-400 text-xs font-bold uppercase mb-1">Notas Generales</h4>
+                <h4 className="text-slate-400 text-xs font-bold uppercase mb-1">General notes</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
                   {details.notes}
                 </p>
@@ -85,7 +85,7 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
           {/* Flags Extras */}
           {details.fixed && (
              <div className="flex items-center gap-2 text-green-400 text-sm bg-green-900/20 p-2 rounded border border-green-900/50">
-                <Wrench size={16}/> El robot fue reparado en este match.
+                <Wrench size={16}/> The robot was fixed in this match.
              </div>
           )}
         </div>
