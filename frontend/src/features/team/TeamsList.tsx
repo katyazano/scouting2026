@@ -19,7 +19,7 @@ export const TeamsList = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64 text-slate-500">
-        <Loader2 className="animate-spin mr-2" /> Cargando lista...
+        <Loader2 className="animate-spin mr-2" /> Loading teams list...
       </div>
     );
   }
@@ -28,7 +28,7 @@ export const TeamsList = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-red-400">
         <WifiOff size={48} className="mb-4" />
-        <h3 className="text-lg font-bold">Error cargando equipos</h3>
+        <h3 className="text-lg font-bold">Error loading teams</h3>
       </div>
     );
   }
@@ -40,10 +40,10 @@ export const TeamsList = () => {
       <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4 border-b border-slate-800 pb-6">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <Users className="text-indigo-500" /> Equipos
+            <Users className="text-indigo-500" /> Teams
           </h1>
           <p className="text-slate-400 mt-1">
-            {filteredTeams?.length} equipos registrados
+            {filteredTeams?.length} Registered Teams
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export const TeamsList = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
           <input 
             type="text" 
-            placeholder="Buscar número..." 
+            placeholder="Search teams..." 
             className="w-full bg-slate-900 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-600"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -86,7 +86,7 @@ export const TeamsList = () => {
           ))
         ) : (
           <div className="text-center py-12 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
-            <p className="text-slate-500">No hay equipos con ese número.</p>
+            <p className="text-slate-500">No teams with this number found.</p>
           </div>
         )}
       </div>

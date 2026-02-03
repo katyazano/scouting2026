@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { Home } from './features/home/Home';
-import { TeamPage } from './features/team/TeamPage'; // <--- Importar
+import { TeamPage } from './features/team/TeamPage'; 
 import { TeamsList } from './features/team/TeamsList';
 import { ComparePage } from './features/compare/ComparePage';
 import { TrendsPage } from './features/trends/TrendsPage';

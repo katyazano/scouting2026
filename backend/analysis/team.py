@@ -16,12 +16,33 @@ def get_mapped_value(val, mapping, default="N/A"):
         return mapping.get(int(val), default)
     except: return default
 
+# --- CORRECCIÓN AQUÍ: Rango exacto basado en tus nombres del CSV ---
+def get_type_rank(match_type_str):
+    """
+    Asigna prioridad de ordenamiento:
+    0: Practice
+    1: Qualification
+    2: Playoff
+    """
+    # Normalizamos a minúsculas y quitamos espacios por seguridad
+    s = str(match_type_str).strip()
+    
+    if s == "Practice": return 0
+    if s == "Qualification": return 1
+    if s == "Playoff": return 2
+    
+    return 1 # Default (Si sale algo raro, lo tratamos como Qual)
+
 def team_overview(df, team_num):
-    # Filtrar y ordenar
     team_df = df[df['team_num'] == team_num].copy()
-    team_df = team_df.sort_values('match_num')
     
     if team_df.empty: return {"error": "Team not found"}
+
+    # 1. ORDENAMIENTO (Usando los nombres exactos)
+    team_df['type_rank'] = team_df['match_type'].apply(get_type_rank)
+    
+    # Ordenar: Primero por Tipo (0->1->2), luego por número de match
+    team_df = team_df.sort_values(by=['type_rank', 'match_num'], ascending=[True, True])
 
     matches_played = int(len(team_df))
     
@@ -64,7 +85,7 @@ def team_overview(df, team_num):
     if raw_hopper and str(raw_hopper) != "-1":
         hopper_val = get_mapped_value(raw_hopper, HOPPER_MAP)
 
-    # --- COMENTARIOS (ACTUALIZADO) ---
+    # --- COMENTARIOS ---
     comments_list = []
     
     def is_valid(txt):
@@ -74,39 +95,65 @@ def team_overview(df, team_num):
         scouter_name = str(row.get('scouter', 'Anon'))
         match_n = int(row['match_num'])
         
-        # 1. Comentarios de Autónomo
         auto_c = row.get('auto_comm')
         if is_valid(auto_c):
-            comments_list.append({
-                "match_num": match_n,
-                "scouter": scouter_name,
-                "text": f"[Auto] {str(auto_c)}"
-            })
+            comments_list.append({"match_num": match_n, "scouter": scouter_name, "text": f"[Auto] {str(auto_c)}"})
             
-        # 2. Comentarios de Teleop
         tele_c = row.get('tele_comm')
         if is_valid(tele_c):
-            comments_list.append({
-                "match_num": match_n,
-                "scouter": scouter_name,
-                "text": f"[Tele] {str(tele_c)}"
-            })
+            comments_list.append({"match_num": match_n, "scouter": scouter_name, "text": f"[Tele] {str(tele_c)}"})
 
-        # 3. Notas Generales
         adv_c = row.get('adv_comments')
         if is_valid(adv_c):
-            comments_list.append({
-                "match_num": match_n,
-                "scouter": scouter_name,
-                "text": str(adv_c)
-            })
+            comments_list.append({"match_num": match_n, "scouter": scouter_name, "text": str(adv_c)})
 
-    comments_list.reverse() # Los más recientes primero
+    comments_list.reverse()
+
+    # --- HISTORIAL PARA GRÁFICA (Ajustado a tus strings exactos) ---
+    matches_history = []
+    for _, row in team_df.iterrows():
+        # Leemos el valor exacto del CSV
+        raw_type = str(row.get('match_type', 'Qualification')).strip()
+        
+        # Mapeamos a una etiqueta bonita para la UI
+        label_type = raw_type
+        if raw_type == "Qualification":
+            label_type = "Quals" # Para que no ocupe tanto espacio en la gráfica
+        elif raw_type == "Playoff":
+            label_type = "Playoffs" # Plural suena mejor en inglés, opcional
+
+        auto_p = float(row.get('auto_pts', 0)) if pd.notna(row.get('auto_pts')) else 0.0
+        tele_p = float(row.get('tele_pts', 0)) if pd.notna(row.get('tele_pts')) else 0.0
+        
+        total_p = row.get('match_total_pts')
+        if pd.isna(total_p): total_p = auto_p + tele_p
+        
+        matches_history.append({
+        "match_num": int(row['match_num']),
+        "match_type": label_type,
+        "auto_pts": auto_p,
+        "tele_pts": tele_p,
+        "total_pts": float(total_p),
+        
+        # --- AGREGAMOS LA "DATA CRUDA" AQUÍ ---
+        "details": {
+            "scouter": str(row.get('scouter', 'N/A')),
+            "auto_comm": str(row.get('auto_comm', '')) if pd.notna(row.get('auto_comm')) else None,
+            "tele_comm": str(row.get('tele_comm', '')) if pd.notna(row.get('tele_comm')) else None,
+            "notes": str(row.get('adv_comments', '')) if pd.notna(row.get('adv_comments')) else None,
+            "broke": bool(row.get('adv_broke') == 1),
+            "fixed": bool(row.get('adv_fixed') == 1),
+            "defended": bool(row.get('adv_role') == 2), # Asumiendo 2 es defensa
+            "climb_level": int(row.get('tele_hang')) if pd.notna(row.get('tele_hang')) else 0,
+            "advanced": str(row.get('adv_comments', '')) if pd.notna(row.get('adv_comments')) else None
+        }
+    })
 
     return {
         "team_num": int(team_num),
         "matches_played": matches_played,
         "comments": comments_list,
+        "trend": matches_history, 
         "overall": { "avg_total_pts": round(avg_total_pts, 2) },
         "auto": { 
             "avg_total_pts": round(avg_auto_pts, 2),

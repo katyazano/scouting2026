@@ -21,7 +21,7 @@ NUMERIC_FIELDS = [
 ]
 
 LIST_FIELDS = ["adv_shooter"]
-STRING_FIELDS = ["adv_hoppercapacity", "adv_comments"]
+STRING_FIELDS = ["adv_hoppercapacity", "adv_comments", "match_type"]
 
 def parse_list_field(value):
     if pd.isna(value) or value == "" or value == -1: return []

@@ -1,24 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
-import { getTeamOverview, getTeamTrend } from '../api/client';
-import type { TeamOverview, MatchTrend } from '../types'; // <--- Tipos Nuevos
+import { getTeamOverview } from '../api/client';
 
-export const useTeamData = (teamNumber: string) => {
-  const overview = useQuery({
-    queryKey: ['team', teamNumber, 'overview'],
-    queryFn: () => getTeamOverview(teamNumber),
-    enabled: !!teamNumber,
-  });
-
-  const trends = useQuery({
-    queryKey: ['team', teamNumber, 'trends'],
-    queryFn: () => getTeamTrend(teamNumber),
-    enabled: !!teamNumber,
+export const useTeamData = (teamId: string) => {
+  
+  const overviewQuery = useQuery({
+    queryKey: ['team', teamId, 'overview'],
+    queryFn: () => getTeamOverview(Number(teamId)),
+    enabled: !!teamId,
   });
 
   return {
-    metrics: overview.data as TeamOverview | undefined, // <--- Cast correcto
-    trendData: trends.data as MatchTrend[] | undefined, // <--- Cast correcto
-    isLoading: overview.isLoading || trends.isLoading,
-    isError: overview.isError || trends.isError,
+    metrics: overviewQuery.data,
+    // AQUÍ ESTÁ LA CLAVE: 
+    // Usamos 'overviewQuery.data.trend' que viene directo de tu backend Python nuevo.
+    // Si no existe, devolvemos array vacío para que no rompa.
+    trendData: overviewQuery.data?.trend || [],
+    
+    isLoading: overviewQuery.isLoading,
+    isError: overviewQuery.isError,
   };
 };

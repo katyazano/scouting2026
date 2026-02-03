@@ -1,3 +1,4 @@
+import { useState } from 'react'; // <--- 1. Importar useState
 import { useParams } from 'react-router-dom';
 import { 
   Loader2, WifiOff, Cpu, Box, Crosshair, 
@@ -5,11 +6,15 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../../components/ui/StatCard';
 import { MatchTrendChart } from '../../components/charts/MatchTrendChart';
+import { MatchDetailsModal } from '../../components/modals/MatchDetailsModal'; // <--- 2. Importar el Modal
 import { useTeamData } from '../../hooks/useTeamData';
 
 export const TeamPage = () => {
   const { teamId } = useParams();
   const { metrics, trendData, isLoading, isError } = useTeamData(teamId || '');
+  
+  // <--- 3. Estado para controlar el Modal
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
 
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>;
   if (isError || !metrics) return <div className="flex justify-center p-20 text-red-400"><WifiOff size={40} /> <span className="ml-2">Connection error</span></div>;
@@ -95,9 +100,17 @@ export const TeamPage = () => {
       {/* --- CHART Y SIDEBAR --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-           {trendData ? <MatchTrendChart data={trendData} /> : <div className="p-10 text-slate-500 text-center border border-dashed border-slate-800 rounded-xl">Sin historial</div>}
+           {/* <--- 4. Conectar la gráfica con el estado del Modal */}
+           {trendData ? (
+             <MatchTrendChart 
+               data={trendData} 
+               onMatchClick={(match) => setSelectedMatch(match)} 
+             />
+           ) : (
+             <div className="p-10 text-slate-500 text-center border border-dashed border-slate-800 rounded-xl">Sin historial</div>
+           )}
            
-           {/* --- NUEVA SECCIÓN: SCOUT LOG (COMENTARIOS) --- */}
+           {/* --- SCOUT LOG (COMENTARIOS) --- */}
            <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
               <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex items-center gap-2">
                 <MessageSquare size={16} className="text-indigo-400" />
@@ -111,7 +124,6 @@ export const TeamPage = () => {
                 {metrics.comments && metrics.comments.length > 0 ? (
                   metrics.comments.map((comment: any, idx: number) => (
                     <div key={idx} className="flex gap-3 p-3 bg-slate-950/50 rounded-lg border border-slate-800/50">
-                      {/* Avatar Simulado con Iniciales */}
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xs font-bold">
                         {comment.scouter ? comment.scouter.substring(0,2).toUpperCase() : "??"}
                       </div>
@@ -140,7 +152,7 @@ export const TeamPage = () => {
         {/* SIDEBAR */}
         <div className="space-y-4">
             
-            {/* NUEVO DISEÑO: TARJETA DE SALUD DEL ROBOT */}
+            {/* TARJETA DE SALUD DEL ROBOT */}
             <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-xl">
                  <div className="flex justify-between items-center mb-4">
                     <h4 className="text-slate-400 font-bold text-s uppercase flex items-center gap-2">
@@ -151,7 +163,6 @@ export const TeamPage = () => {
                     </span>
                  </div>
 
-                 {/* BARRA DE PROGRESO VISUAL */}
                  <div className="w-full h-3 bg-slate-800 rounded-full mb-2 overflow-hidden border border-slate-700">
                     <div 
                         className={`h-full ${healthColor.split(" ")[1]} transition-all duration-1000 ease-out`} 
@@ -159,7 +170,6 @@ export const TeamPage = () => {
                     />
                  </div>
                  
-                 {/* HISTORIAL INTEGRADO */}
                  <div className="border-t border-slate-800/50 pt-4">
                      <h5 className="text-slate-500 text-s font-bold uppercase mb-3 flex items-center gap-2">
                         <History size={14} /> Broken record
@@ -177,7 +187,7 @@ export const TeamPage = () => {
                              <div>
                                <p className="text-[15px] text-red-300 font-medium">Broke in:</p>
                                <div className="flex flex-wrap gap-1 mt-1">
-                                 {reliability.broke.matches.map(m => (
+                                 {reliability.broke.matches.map((m: number) => (
                                    <span key={m} className="px-1.5 py-0.5 bg-red-500/10 text-red-400 text-[12px] font-mono rounded border border-red-500/20">Q{m}</span>
                                  ))}
                                </div>
@@ -191,7 +201,7 @@ export const TeamPage = () => {
                              <div>
                                <p className="text-[15px] text-emerald-300 font-medium">Repaired in:</p>
                                <div className="flex flex-wrap gap-1 mt-1">
-                                 {reliability.fixed.matches.map(m => (
+                                 {reliability.fixed.matches.map((m: number) => (
                                    <span key={m} className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[12px] font-mono rounded border border-emerald-500/20">Q{m}</span>
                                  ))}
                                </div>
@@ -202,7 +212,6 @@ export const TeamPage = () => {
                      )}
                  </div>
 
-                 {/* Alerta si está roto actualmente */}
                  {reliability.currently_broken && (
                    <div className="mt-4 bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex gap-3 items-center">
                        <AlertTriangle className="text-red-400 shrink-0" size={16} />
@@ -224,7 +233,7 @@ export const TeamPage = () => {
                     <strong className="text-indigo-400">{(metrics.teleop.hang_success_rate * 100).toFixed(0)}%</strong>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
-                    <span>Rol preferido:</span>
+                    <span>Prefered role:</span>
                     <strong className="text-cyan-400 uppercase">{typical.role || "N/A"}</strong>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
@@ -243,6 +252,14 @@ export const TeamPage = () => {
             </div>
         </div>
       </div>
+      
+      {/* <--- 5. Renderizar el Modal al final */}
+      <MatchDetailsModal 
+         isOpen={!!selectedMatch} 
+         onClose={() => setSelectedMatch(null)} 
+         data={selectedMatch} 
+      />
+
     </div>
   );
 };

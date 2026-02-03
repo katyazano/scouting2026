@@ -6,11 +6,11 @@ export const Layout = () => {
   const location = useLocation();
 
   const navItems = [
-    { label: 'Inicio', path: '/', icon: Home },
-    { label: 'Equipos', path: '/teams', icon: Users },
-    { label: 'Análisis', path: '/analysis', icon: BarChart2 }, 
-    { label: 'Comparar', path: '/compare', icon: BarChart3 },
-    { label: 'Tendencias', path: '/trends', icon: TrendingUp },
+    { label: 'Home', path: '/', icon: Home },
+    { label: 'Teams', path: '/teams', icon: Users },
+    { label: 'Analysis', path: '/analysis', icon: BarChart2 }, 
+    { label: 'Compare', path: '/compare', icon: BarChart3 },
+    { label: 'Trends', path: '/trends', icon: TrendingUp },
   ];
 
   return (

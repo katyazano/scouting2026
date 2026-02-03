@@ -1,274 +1,223 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Scatter, ErrorBar, ZAxis, ReferenceLine, Cell
-} from 'recharts';
-import { BarChart2, Filter, Loader2, AlertCircle, ArrowUpDown, Activity } from 'lucide-react';
-import { getEventMetric } from '../../api/client';
+import { LayoutGrid, List, BarChart2, Activity } from 'lucide-react';
+import { getTeamsList, getEventMetric } from '../../api/client';
 
-// Opciones de Métricas (Asegúrate que coincidan con las columnas de tu CSV/Backend)
-const METRIC_OPTIONS = [
-  { key: 'match_avg_total_pts', label: 'Promedio Total (Match)' },
-  { key: 'auto_total_pts', label: 'Puntos Autónomo Total' },
-  { key: 'tele_total_pts', label: 'Puntos Teleop Total' },
-  { key: 'tele_avg_fuel', label: 'Teleop Fuel (Solo Notas)' },
-  { key: 'tele_hang_success_rate', label: '% Éxito Escalada' },
-  { key: 'auto_success_rate', label: '% Éxito Autónomo' },
-  { key: 'break_rate', label: 'Tasa de Rotura' },
+// Visual Components
+import { AnalysisTable } from '../../components/charts/AnalysisTable';
+import { AnalysisScatter } from '../../components/charts/AnalysisScatter';
+import { AnalysisRangeChart } from '../../components/charts/AnalysisRangeChart';
+
+// --- CONFIGURACIÓN DE OPCIONES (ENGLISH) ---
+const METRICS_OPTS = [
+  { key: 'match_avg_total_pts', label: 'Total Avg' },
+  { key: 'auto_total_pts', label: 'Auto Pts' },
+  { key: 'tele_total_pts', label: 'Teleop Pts' },
+  { key: 'tele_avg_fuel', label: 'Teleop Notes' }, // O "Game Pieces"
+  { key: 'auto_success_rate', label: 'Auto Accuracy %' },
+  { key: 'tele_hang_success_rate', label: 'Hang Success %' },
+  { key: 'break_rate', label: 'Break Rate' },
 ];
 
-interface ChartDataPoint {
-  team_num: number;
-  avg: number;
-  min: number;
-  max: number;
-  range: number; // Diferencia Max - Min
-  errorRange: [number, number]; // Para la barra de error
-}
-
-// --- FIGURAS PERSONALIZADAS ---
-const DiamondShape = (props: any) => {
-  const { cx, cy, fill } = props;
-  const r = 5; 
-  if (!cx || !cy) return null;
-  return (
-    <path 
-      d={`M ${cx},${cy - r} L ${cx + r},${cy} L ${cx},${cy + r} L ${cx - r},${cy} Z`} 
-      fill={fill} stroke="#fff" strokeWidth={1}
-    />
-  );
-};
-
 export const AnalysisPage = () => {
-  const [selectedMetric, setSelectedMetric] = useState(METRIC_OPTIONS[0]);
-  const [sortBy, setSortBy] = useState<'avg' | 'max' | 'consistency'>('avg');
-
-  const { data: metricData, isLoading, isError } = useQuery({
-    queryKey: ['event-metric', selectedMetric.key],
-    // Asegúrate de que tu backend soporte pedir métricas individuales o ajusta esto
-    queryFn: () => getEventMetric(selectedMetric.key),
+  // 1. Load Team List
+  const { data: teamsList } = useQuery({
+    queryKey: ['teams-list'],
+    queryFn: getTeamsList,
   });
 
-  // Procesamiento de Datos
-  const { chartData, eventAverage } = useMemo(() => {
-    if (!metricData?.data) return { chartData: [], eventAverage: 0 };
+  // --- VIEW STATES ---
+  const [viewMode, setViewMode] = useState<'table' | 'scatter' | 'range'>('table');
+
+  // State: Scatter Chart
+  const [xVar, setXVar] = useState(METRICS_OPTS[1].key); // Default: Auto
+  const [yVar, setYVar] = useState(METRICS_OPTS[2].key); // Default: Teleop
+  const [scatterValueType, setScatterValueType] = useState<'avg' | 'max' | 'range'>('avg');
+
+  // State: Range Chart
+  const [rangeMetric, setRangeMetric] = useState(METRICS_OPTS[0].key); // Default: Total
+  const [rangeSort, setRangeSort] = useState<'avg' | 'max' | 'consistency'>('avg');
+
+  // ===========================================================================
+  // DATA LOGIC: TABLE (God View Construction)
+  // ===========================================================================
+  const qTotal = useQuery({ queryKey: ['metric', 'match_avg_total_pts'], queryFn: () => getEventMetric('match_avg_total_pts') });
+  const qAuto = useQuery({ queryKey: ['metric', 'auto_total_pts'], queryFn: () => getEventMetric('auto_total_pts') });
+  const qTele = useQuery({ queryKey: ['metric', 'tele_total_pts'], queryFn: () => getEventMetric('tele_total_pts') });
+  const qFuel = useQuery({ queryKey: ['metric', 'tele_avg_fuel'], queryFn: () => getEventMetric('tele_avg_fuel') });
+  const qAutoRate = useQuery({ queryKey: ['metric', 'auto_success_rate'], queryFn: () => getEventMetric('auto_success_rate') });
+  const qHangRate = useQuery({ queryKey: ['metric', 'tele_hang_success_rate'], queryFn: () => getEventMetric('tele_hang_success_rate') });
+  const qBreak = useQuery({ queryKey: ['metric', 'break_rate'], queryFn: () => getEventMetric('break_rate') });
+
+  const tableData = useMemo(() => {
+    if (!teamsList) return [];
+
+    const createMap = (query: any) => new Map(query.data?.data?.map((d: any) => [d.team_num, d.avg]) || []);
     
-    const processed: ChartDataPoint[] = metricData.data.map((d: any) => {
-      const avg = Number(d.avg);
-      const min = Number(d.min);
-      const max = Number(d.max);
-      return {
-        team_num: d.team_num,
-        avg: avg,
-        min: min,
-        max: max,
-        range: max - min,
-        errorRange: [avg - min, max - avg] 
+    const mapTotal = createMap(qTotal);
+    const mapAuto = createMap(qAuto);
+    const mapTele = createMap(qTele);
+    const mapFuel = createMap(qFuel);
+    const mapAutoRate = createMap(qAutoRate);
+    const mapHangRate = createMap(qHangRate);
+    const mapBreak = createMap(qBreak);
+
+    return teamsList.map(t => ({
+        team_num: t.team_num,
+        nickname: t.nickname,
+        total_avg: mapTotal.get(t.team_num) || 0,
+        auto_avg: mapAuto.get(t.team_num) || 0,
+        tele_avg: mapTele.get(t.team_num) || 0,
+        fuel_avg: mapFuel.get(t.team_num) || 0,
+        auto_success: mapAutoRate.get(t.team_num) || 0,
+        hang_success: mapHangRate.get(t.team_num) || 0,
+        break_rate: mapBreak.get(t.team_num) || 0,
+    }));
+  }, [teamsList, qTotal.data, qAuto.data, qTele.data, qFuel.data, qAutoRate.data, qHangRate.data, qBreak.data]);
+
+  // ===========================================================================
+  // DATA LOGIC: SCATTER CHART
+  // ===========================================================================
+  const isScatter = viewMode === 'scatter';
+
+  const xQuery = useQuery({
+    queryKey: ['event-metric', xVar],
+    queryFn: () => getEventMetric(xVar),
+    enabled: isScatter,
+  });
+
+  const yQuery = useQuery({
+    queryKey: ['event-metric', yVar],
+    queryFn: () => getEventMetric(yVar),
+    enabled: isScatter,
+  });
+
+  const scatterData = useMemo(() => {
+    if (!isScatter || !xQuery.data?.data || !yQuery.data?.data) return [];
+
+    const yMap = new Map(yQuery.data.data.map((d: any) => [d.team_num, d]));
+
+    return xQuery.data.data.map((xData: any) => {
+      const yData = yMap.get(xData.team_num);
+      if (!yData) return null;
+
+      const getValue = (record: any) => {
+          if (scatterValueType === 'range') return (record.max - record.min);
+          return Number(record[scatterValueType]);
       };
-    });
 
-    // Calcular promedio global del evento para la línea de referencia
-    const totalAvg = processed.reduce((acc, curr) => acc + curr.avg, 0) / (processed.length || 1);
+      return {
+        team_num: xData.team_num,
+        name: `Team ${xData.team_num}`,
+        x: getValue(xData),
+        y: getValue(yData),
+      };
+    }).filter(Boolean);
+  }, [xQuery.data, yQuery.data, scatterValueType, isScatter]);
 
-    // Lógica de Ordenamiento
-    const sorted = processed.sort((a, b) => {
-      if (sortBy === 'avg') return b.avg - a.avg;
-      if (sortBy === 'max') return b.max - a.max;
-      if (sortBy === 'consistency') return a.range - b.range; // Menor rango = Más consistente
-      return 0;
-    });
+  const xLabel = METRICS_OPTS.find(m => m.key === xVar)?.label || 'X Axis';
+  const yLabel = METRICS_OPTS.find(m => m.key === yVar)?.label || 'Y Axis';
+  const isLoadingScatter = isScatter && (xQuery.isLoading || yQuery.isLoading);
 
-    return { chartData: sorted, eventAverage: totalAvg };
-  }, [metricData, sortBy]);
-
-  // Tooltip Personalizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-md z-50 min-w-[180px]">
-          <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
-             <span className="font-black text-lg text-white">Team {label}</span>
-             <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded uppercase">Rank #{chartData.indexOf(data) + 1}</span>
-          </div>
-          
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between text-emerald-400">
-              <span>Max:</span> <span className="font-bold">{data.max.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between text-white font-bold bg-white/10 px-1.5 py-0.5 rounded">
-              <span>Avg:</span> <span>{data.avg.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between text-rose-400">
-              <span>Min:</span> <span className="font-bold">{data.min.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between text-slate-400 pt-1 mt-1 border-t border-slate-800">
-              <span>Variability:</span> <span>{data.range.toFixed(1)} pts</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
+  // ===========================================================================
+  // RENDER
+  // ===========================================================================
   return (
-    <div className="w-full h-full flex flex-col animate-in fade-in duration-500 pb-10">
+    <div className="w-full h-full flex flex-col space-y-6 animate-in fade-in duration-500">
       
-      {/* --- HEADER DE CONTROLES --- */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6 border-b border-slate-800 pb-6 shrink-0">
+      {/* HEADER & TOOLBAR */}
+      <div className="flex flex-col xl:flex-row justify-between items-end border-b border-slate-800 pb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-3">
-            <BarChart2 className="text-indigo-500" /> Comparativa de Equipos
+          <h1 className="text-3xl font-black text-white flex items-center gap-2">
+            <BarChart2 className="text-indigo-500" /> Data Analysis
           </h1>
-          <p className="text-slate-400 mt-1 text-sm max-w-2xl">
-            Analiza el rango de rendimiento de cada equipo. La <span className="text-indigo-400 font-bold">barra azul</span> representa la variabilidad entre su peor y mejor match. El <span className="text-orange-500 font-bold">rombo</span> es su promedio.
-          </p>
+          <p className="text-slate-400">Competition data laboratory.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-          
-          {/* Selector de Métrica */}
-          <div className="w-full sm:w-64">
-            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1.5">
-              <Filter size={12} /> Métrica
-            </label>
-            <div className="relative">
-              <select 
-                className="w-full bg-slate-900 border border-slate-700 text-white text-sm p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer hover:border-slate-600 transition-colors"
-                value={selectedMetric.key}
-                onChange={(e) => {
-                  const metric = METRIC_OPTIONS.find(m => m.key === e.target.value);
-                  if (metric) setSelectedMetric(metric);
-                }}
-              >
-                {METRIC_OPTIONS.map(opt => (
-                  <option key={opt.key} value={opt.key}>{opt.label}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
-                <ArrowUpDown size={14} />
-              </div>
+        {/* --- TOOLBAR --- */}
+        <div className="flex flex-wrap items-center gap-3 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800">
+            
+            {/* 1. VIEW SELECTOR */}
+            <div className="flex bg-slate-950 rounded-md p-1 border border-slate-800">
+                <button onClick={() => setViewMode('table')} className={`p-2 rounded flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
+                    <List size={14} /> Table
+                </button>
+                <button onClick={() => setViewMode('scatter')} className={`p-2 rounded flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'scatter' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
+                    <LayoutGrid size={14} /> Scatter
+                </button>
+                <button onClick={() => setViewMode('range')} className={`p-2 rounded flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'range' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
+                    <Activity size={14} /> Ranges
+                </button>
             </div>
-          </div>
 
-          {/* Botones de Ordenamiento */}
-          <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1.5">
-              <ArrowUpDown size={12} /> Ordenar por
-            </label>
-            <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-                <button 
-                  onClick={() => setSortBy('avg')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortBy === 'avg' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Promedio
-                </button>
-                <button 
-                  onClick={() => setSortBy('max')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortBy === 'max' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Potencial (Max)
-                </button>
-                <button 
-                  onClick={() => setSortBy('consistency')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortBy === 'consistency' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Consistencia
-                </button>
-            </div>
-          </div>
+            <div className="h-8 w-px bg-slate-800 mx-1 hidden sm:block"></div>
+
+            {/* 2. DYNAMIC CONTROLS */}
+            
+            {/* SCATTER CONTROLS */}
+            {viewMode === 'scatter' && (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                    <div className="flex bg-slate-950 rounded border border-slate-800 p-0.5 mr-2">
+                        {(['avg', 'max', 'range'] as const).map(type => (
+                            <button
+                                key={type}
+                                onClick={() => setScatterValueType(type)}
+                                className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${scatterValueType === type ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+
+                    <select value={xVar} onChange={(e) => setXVar(e.target.value)} className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1.5 outline-none focus:border-indigo-500 cursor-pointer">
+                        {METRICS_OPTS.map(m => <option key={m.key} value={m.key}>X: {m.label}</option>)}
+                    </select>
+                    <span className="text-slate-600 font-bold text-xs">vs</span>
+                    <select value={yVar} onChange={(e) => setYVar(e.target.value)} className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1.5 outline-none focus:border-indigo-500 cursor-pointer">
+                        {METRICS_OPTS.map(m => <option key={m.key} value={m.key}>Y: {m.label}</option>)}
+                    </select>
+                </div>
+            )}
+
+            {/* RANGE CONTROLS */}
+            {viewMode === 'range' && (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                     <select value={rangeMetric} onChange={(e) => setRangeMetric(e.target.value)} className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1.5 outline-none focus:border-indigo-500 min-w-[140px] cursor-pointer">
+                        {METRICS_OPTS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+                    </select>
+                    <div className="flex bg-slate-950 rounded border border-slate-800 p-0.5">
+                        <button onClick={() => setRangeSort('avg')} className={`px-2 py-1 text-[10px] font-bold rounded ${rangeSort === 'avg' ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}>Avg</button>
+                        <button onClick={() => setRangeSort('max')} className={`px-2 py-1 text-[10px] font-bold rounded ${rangeSort === 'max' ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}>Max</button>
+                        <button onClick={() => setRangeSort('consistency')} className={`px-2 py-1 text-[10px] font-bold rounded ${rangeSort === 'consistency' ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}>Consist.</button>
+                    </div>
+                </div>
+            )}
         </div>
       </div>
 
-      {/* --- GRÁFICO PRINCIPAL --- */}
-      <div className="w-full h-[600px] bg-slate-900/40 border border-slate-800 rounded-2xl p-2 relative overflow-hidden shadow-inner">
+      {/* --- CONTENT AREA --- */}
+      <div className="flex-1 min-h-0 bg-slate-900/40 border border-slate-800 rounded-xl p-0 overflow-hidden relative">
         
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center text-indigo-400 z-20 bg-slate-950/80 backdrop-blur-sm">
-            <Loader2 className="animate-spin" size={48} />
-          </div>
+        {viewMode === 'table' && (
+             <AnalysisTable data={tableData} />
         )}
 
-        {isError && (
-           <div className="flex flex-col items-center justify-center h-full text-red-400">
-             <AlertCircle size={48} className="mb-4 opacity-50"/>
-             <p className="font-bold">Error cargando datos</p>
-             <p className="text-sm opacity-70">Verifica la conexión con el servidor</p>
-           </div>
+        {viewMode === 'scatter' && (
+             isLoadingScatter ? (
+                 <div className="h-full flex items-center justify-center text-indigo-400 font-mono text-sm animate-pulse">Loading Scatter Data...</div>
+             ) : (
+                 <AnalysisScatter 
+                    data={scatterData} 
+                    xLabel={`${xLabel} (${scatterValueType})`} 
+                    yLabel={`${yLabel} (${scatterValueType})`} 
+                 />
+             )
         )}
 
-        {!isLoading && !isError && chartData.length === 0 && (
-           <div className="flex flex-col items-center justify-center h-full text-slate-500">
-             <Activity size={48} className="mb-4 opacity-20"/>
-             <p>No hay datos disponibles para esta métrica.</p>
-           </div>
+        {viewMode === 'range' && (
+             <AnalysisRangeChart metricKey={rangeMetric} sortBy={rangeSort} />
         )}
 
-        {!isLoading && chartData.length > 0 && (
-          <ResponsiveContainer width="99%" height="100%">
-            <ComposedChart
-              data={chartData}
-              margin={{ top: 25, right: 30, left: 0, bottom: 60 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              
-              <XAxis 
-                dataKey="team_num" 
-                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }} 
-                interval={0} 
-                angle={-90}
-                textAnchor="end"
-                height={60}
-                tickMargin={10}
-              />
-              <YAxis 
-                tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }} 
-                domain={[0, 'auto']}
-                axisLine={false}
-                tickLine={false}
-              />
-              <ZAxis range={[60, 60]} />
-              
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-              
-              {/* Línea de Promedio del Evento */}
-              <ReferenceLine y={eventAverage} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'center', value: 'Event Avg', fill: '#ef4444', fontSize: 10 }} />
-
-              {/* Barra de Error (El Rango) */}
-              <Scatter name="Rango" dataKey="avg" shape={<DiamondShape />} isAnimationActive={false}>
-                <ErrorBar 
-                  dataKey="errorRange" 
-                  width={0} 
-                  strokeWidth={6} 
-                  stroke="#312e81"  // Color base de la barra (Indigo muy oscuro)
-                  direction="y"
-                />
-                {/* Colorear los rombos según desempeño respecto al promedio del evento */}
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.avg >= eventAverage ? '#f97316' : '#94a3b8'} />
-                ))}
-              </Scatter>
-
-              {/* Topes Min y Max (Puntos pequeños para referencia visual) */}
-              <Scatter dataKey="min" shape={() => <g />} legendType='none' />
-              <Scatter dataKey="max" shape={() => <g />} legendType='none' />
-
-            </ComposedChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      <div className="mt-4 flex gap-6 justify-center text-xs text-slate-500 font-mono">
-         <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-orange-500 rotate-45"></span> Promedio del Equipo
-         </div>
-         <div className="flex items-center gap-2">
-            <span className="w-1.5 h-4 bg-indigo-900"></span> Rango de Rendimiento
-         </div>
-         <div className="flex items-center gap-2">
-            <span className="w-4 h-[1px] border-t border-dashed border-red-500"></span> Promedio del Evento
-         </div>
       </div>
     </div>
   );
