@@ -1,26 +1,50 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
   BarChart2, Users, Scale, ArrowRight, Activity, 
-  Trophy, Zap, Search 
+  Trophy, Zap, Search, Loader2 
 } from 'lucide-react';
-import { getTeamsList } from '../../api/client';
+
+// CORRECCIÓN AQUÍ: Agregamos "../" extra para salir de 'features/home' hasta 'src'
+import { getTeamsList, getEventMetric } from '../../api/client';
 
 export const Home = () => {
   const navigate = useNavigate();
 
-  // Load basic data for stats
+  // 1. Cargar lista de equipos
   const { data: teams } = useQuery({
     queryKey: ['teams-list'],
     queryFn: getTeamsList,
   });
 
-  // Calculate quick stats
-  const totalTeams = teams?.length || 0;
-  // Mock stats (replace with real metrics if available)
-  const matchesScouted = 42; 
-  const avgEventScore = 35.5; 
+  // 2. Cargar métricas del evento para el promedio global
+  const { data: metricData, isLoading: isLoadingMetric } = useQuery({
+    queryKey: ['event-metric', 'match_avg_total_pts'],
+    queryFn: () => getEventMetric('match_avg_total_pts'),
+  });
 
+  // --- CÁLCULOS DE ESTADÍSTICAS REALES ---
+  const stats = useMemo(() => {
+    // A. Total de Equipos
+    const totalTeams = teams?.length || 0;
+
+    // B. Total de Matches Scouted
+    // Usamos (team: any) para evitar errores si TS no detecta 'matches_played'
+    const matchesScouted = teams?.reduce((acc, team: any) => acc + (team.matches_played || 0), 0) || 0;
+
+    // C. Promedio del Evento
+    let avgEventScore = 0;
+    if (metricData?.data) {
+        const scores = metricData.data.map((d: any) => Number(d.avg));
+        const sum = scores.reduce((a: number, b: number) => a + b, 0);
+        avgEventScore = sum / (scores.length || 1);
+    }
+
+    return { totalTeams, matchesScouted, avgEventScore };
+  }, [teams, metricData]);
+
+  // Tarjetas de navegación
   const navigationCards = [
     {
       title: 'Global Analysis',
@@ -60,35 +84,53 @@ export const Home = () => {
 
       {/* --- QUICK STATS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        
+        {/* Card 1: Active Teams */}
         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
           <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400">
             <Users size={28} />
           </div>
           <div>
-            <div className="text-3xl font-black text-white">{totalTeams}</div>
+            <div className="text-3xl font-black text-white">
+                {stats.totalTeams}
+            </div>
             <div className="text-sm text-slate-500 font-bold uppercase tracking-wider">Active Teams</div>
           </div>
         </div>
 
+        {/* Card 2: Matches Scouted */}
         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
           <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400">
             <Activity size={28} />
           </div>
           <div>
-            <div className="text-3xl font-black text-white">{matchesScouted}</div>
+            <div className="text-3xl font-black text-white">
+                {stats.matchesScouted}
+            </div>
             <div className="text-sm text-slate-500 font-bold uppercase tracking-wider">Matches Recorded</div>
           </div>
         </div>
 
+        {/* Card 3: Avg Score */}
         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
           <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400">
             <Trophy size={28} />
           </div>
           <div>
-            <div className="text-3xl font-black text-white">{avgEventScore}</div>
+            <div className="text-3xl font-black text-white flex items-end gap-2">
+                {isLoadingMetric ? (
+                    <Loader2 className="animate-spin mb-1" size={24} />
+                ) : (
+                    <>
+                        {stats.avgEventScore.toFixed(1)} 
+                        <span className="text-sm font-normal text-slate-500 mb-1.5">pts</span>
+                    </>
+                )}
+            </div>
             <div className="text-sm text-slate-500 font-bold uppercase tracking-wider">Avg Event Score</div>
           </div>
         </div>
+
       </div>
 
       {/* --- NAVIGATION SHORTCUTS --- */}
@@ -120,12 +162,12 @@ export const Home = () => {
         ))}
       </div>
 
-      {/* --- SEARCH BAR (Optional Quick Jump) --- */}
+      {/* --- SEARCH BAR --- */}
       <div className="mt-12 bg-slate-900/30 border border-slate-800 rounded-2xl p-8 text-center">
         <h3 className="text-lg font-bold text-slate-300 mb-4">Looking for a specific robot?</h3>
         <button 
             onClick={() => navigate('/teams')}
-            className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl font-bold transition-all border border-slate-700"
+            className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl font-bold transition-all border border-slate-700 hover:border-indigo-500"
         >
             <Search size={18} />
             Go to Search
