@@ -1,0 +1,2 @@
+timestamp,team_num,match_num,match_type,alliance,scouter,start_zone,auto_active,auto_hang,auto_pts,auto_comm,tele_pts,tele_comm,tele_hang,adv_role,adv_broke,adv_fixed,adv_chasis,adv_intake,adv_shooter,adv_climber,adv_hoppercapacity,adv_trench,adv_comments
+,2,2,Qualification,Red,TES,1,1,0,1,test,3,tset,1,1,0,0,0,1,[1],1,2,0,tset,1,13,14,True,1
