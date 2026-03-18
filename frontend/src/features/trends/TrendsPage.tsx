@@ -204,7 +204,7 @@ export const TrendsPage = () => {
                 Score frequency distribution across all teams.
             </p>
             <div className="flex-1 min-h-0">
-                <DistributionChart data={qTotal.data?.data} />
+                <DistributionChart data={qTotal.data?.data ?? []} />
             </div>
          </div>
       </div>

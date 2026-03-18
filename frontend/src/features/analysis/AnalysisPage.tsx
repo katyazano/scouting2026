@@ -112,7 +112,7 @@ export const AnalysisPage = () => {
         x: getValue(xData),
         y: getValue(yData),
       };
-    }).filter(Boolean);
+    }).filter((point): point is NonNullable<typeof point> => point !== null);
   }, [xQuery.data, yQuery.data, scatterValueType, isScatter]);
 
   const xLabel = METRICS_OPTS.find(m => m.key === xVar)?.label || 'X Axis';
