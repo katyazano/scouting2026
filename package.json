@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "tailwindcss": "^4.1.18"
+  },
+  "dependencies": {
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

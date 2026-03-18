@@ -5,6 +5,22 @@ export interface MatchTrend {
   anomaly: boolean;
 }
 
+export interface ScoutRecord {
+  team_num: number;
+  match_num: number;
+  // ... tus otros campos ...
+  
+  // OPCIÓN A: Agrega los nuevos explícitamente
+  extra_1?: number;
+  extra_2?: number;
+  extra_3?: number;
+  extra_4?: boolean | number;
+  extra_5?: number;
+
+  // OPCIÓN B (Más fácil): Permite cualquier campo extra
+  [key: string]: any; 
+}
+
 export interface ScouterComment {
   match_num: number;
   scouter: string;

@@ -1,37 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, X, BarChart3, Plus, ArrowUpRight } from 'lucide-react';
-import { getTeamsList, apiClient } from '../../api/client';
-import type { TeamOverview } from '../../types';
+import { Search, X, Scale, Plus, ArrowUpRight } from 'lucide-react';
+import { getTeamsList, getTeamOverview } from '../../api/client';
+import type { TeamOverview } from '../../types/index'; // O donde tengas tus tipos
 
 export const ComparePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // 1. INICIALIZACIÓN INTELIGENTE (Híbrida)
   const [selectedTeams, setSelectedTeams] = useState<number[]>(() => {
-    // A. Intentamos leer de la URL primero (Prioridad Máxima para links compartidos)
     const urlParams = searchParams.get('teams');
     if (urlParams) {
       return urlParams.split(',').map(Number).filter(n => !isNaN(n));
     }
-    
-    // B. Si la URL está vacía, intentamos leer del LocalStorage (Memoria del navegador)
     try {
       const saved = localStorage.getItem('st_compare_teams');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Error leyendo cache", e);
-    }
-
-    // C. Si no hay nada, empezamos vacíos
+      if (saved) return JSON.parse(saved);
+    } catch (e) { console.error(e); }
     return [];
   });
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [teamData, setTeamData] = useState<Record<number, TeamOverview>>({});
+  const [teamData, setTeamData] = useState<Record<number, TeamOverview>>({}); // Usamos any o TeamOverview si tienes la interfaz
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allTeams } = useQuery({
@@ -39,29 +29,32 @@ export const ComparePage = () => {
     queryFn: getTeamsList,
   });
 
-  // 2. EFECTO: Sincronizar cambios a URL y LocalStorage
+  // Sync changes to URL and LocalStorage
   useEffect(() => {
-    // Guardar en URL (para compartir)
     if (selectedTeams.length > 0) {
       setSearchParams({ teams: selectedTeams.join(',') });
     } else {
       setSearchParams({});
     }
-
-    // Guardar en LocalStorage (para persistencia al navegar)
     localStorage.setItem('st_compare_teams', JSON.stringify(selectedTeams));
-    
   }, [selectedTeams, setSearchParams]);
 
-  // 3. Cargar datos (igual que antes)
+  // CORRECCIÓN PRINCIPAL AQUÍ:
+  // Fetch missing data using the new offline function
   useEffect(() => {
     selectedTeams.forEach(async (teamNum) => {
+      // Si no tenemos los datos de este equipo, los pedimos a la memoria
       if (!teamData[teamNum]) {
         try {
-          const { data } = await apiClient.get<TeamOverview>(`/api/team/${teamNum}/overview`);
-          setTeamData(prev => ({ ...prev, [teamNum]: data }));
+          // ANTES: const { data } = await apiClient.get(...)
+          // AHORA: Llamada directa a la función offline
+          const data = await getTeamOverview(teamNum);
+          
+          if (data) {
+             setTeamData(prev => ({ ...prev, [teamNum]: { ...data, comments: data.comments.filter(comment => comment !== null) } }));
+          }
         } catch (error) {
-          console.error(`Error cargando equipo ${teamNum}`, error);
+          console.error(`Error loading team ${teamNum}`, error);
         }
       }
     });
@@ -78,7 +71,6 @@ export const ComparePage = () => {
     setSelectedTeams(prev => prev.filter(t => t !== teamNum));
   };
 
-  // --- RESTO DEL CÓDIGO (Igual que antes) ---
   const searchResults = allTeams?.filter(t => 
     !selectedTeams.includes(t.team_num) && 
     t.team_num.toString().includes(searchTerm)
@@ -89,15 +81,16 @@ export const ComparePage = () => {
     return parseFloat(val.replace('%', ''));
   };
 
+  // Comparison Rows Config
   const rows = [
-    { id: 'matches', label: 'Matches', getValue: (d: TeamOverview) => d.matches_played },
-    { id: 'pts', label: 'Puntos Totales', getValue: (d: TeamOverview) => d.overall.avg_total_pts.toFixed(1), highlight: true },
-    { id: 'auto', label: 'Auto Avg', getValue: (d: TeamOverview) => d.auto.avg_total_pts.toFixed(1), highlight: true },
-    { id: 'fuel', label: 'Teleop Fuel', getValue: (d: TeamOverview) => d.teleop.avg_fuel_pts.toFixed(1), highlight: true },
-    { id: 'tele', label: 'Teleop Pts', getValue: (d: TeamOverview) => d.teleop.avg_total_pts.toFixed(1), highlight: true },
-    { id: 'auto_s', label: 'Auto Success', getValue: (d: TeamOverview) => `${(d.auto.success_rate * 100).toFixed(0)}%`, highlight: true },
-    { id: 'hang_s', label: 'Hang Success', getValue: (d: TeamOverview) => `${(d.teleop.hang_success_rate * 100).toFixed(0)}%`, highlight: true },
-    { id: 'chasis', label: 'Chasis', getValue: (d: TeamOverview) => d.advanced?.latest?.chasis || '-', highlight: false },
+    { id: 'matches', label: 'Matches Played', getValue: (d: any) => d.matches_played },
+    { id: 'pts', label: 'Total Avg Pts', getValue: (d: any) => d.overall.avg_total_pts.toFixed(1), highlight: true },
+    { id: 'auto', label: 'Auto Avg', getValue: (d: any) => d.auto.avg_total_pts.toFixed(1), highlight: true },
+    { id: 'fuel', label: 'Teleop Notes', getValue: (d: any) => d.teleop.avg_fuel_pts.toFixed(1), highlight: true },
+    { id: 'tele', label: 'Teleop Pts', getValue: (d: any) => d.teleop.avg_total_pts.toFixed(1), highlight: true },
+    { id: 'auto_s', label: 'Auto Accuracy', getValue: (d: any) => `${(d.auto.success_rate * 100).toFixed(0)}%`, highlight: true },
+    { id: 'hang_s', label: 'Hang Success', getValue: (d: any) => `${(d.teleop.hang_success_rate * 100).toFixed(0)}%`, highlight: true },
+    { id: 'chassis', label: 'Drivetrain', getValue: (d: any) => d.advanced?.latest?.chasis || '-', highlight: false },
   ];
 
   return (
@@ -107,7 +100,7 @@ export const ComparePage = () => {
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
         <div>
           <h1 className="text-3xl font-black text-white flex items-center gap-2">
-            <BarChart3 className="text-indigo-500" /> Compare Teams
+            <Scale className="text-indigo-500" /> Compare Teams
           </h1>
           <p className="text-slate-400">Analyze strengths and weaknesses side-by-side.</p>
         </div>
@@ -145,14 +138,14 @@ export const ComparePage = () => {
         </div>
       </div>
 
-      {/* ÁREA DE COMPARACIÓN */}
+      {/* COMPARISON AREA */}
       {selectedTeams.length > 0 ? (
         <div className="flex-1 overflow-x-auto pb-4 custom-scrollbar">
           <table className="w-full border-collapse min-w-[600px]">
             <thead>
               <tr>
                 <th className="p-4 w-48 text-left text-slate-500 font-medium border-b border-slate-800 bg-slate-950/50 sticky left-0 z-10">
-                  Metrics
+                  Metric
                 </th>
                 
                 {selectedTeams.map(teamNum => (
@@ -163,6 +156,7 @@ export const ComparePage = () => {
                         <button 
                           onClick={() => removeTeam(teamNum)}
                           className="text-slate-600 hover:text-red-400 transition-colors p-1"
+                          title="Remove team"
                         >
                           <X size={16} />
                         </button>
@@ -200,15 +194,15 @@ export const ComparePage = () => {
                       return (
                         <td key={`${teamNum}-${idx}`} className="p-4 text-center relative">
                           {isWinner && (
-                              <div className="absolute inset-0 bg-emerald-500/5 border-x border-emerald-500/10 pointer-events-none" />
+                              <div className="absolute inset-0 bg-indigo-500/5 border-x border-indigo-500/10 pointer-events-none" />
                           )}
                           
                           {data ? (
                             <span className={`text-lg font-mono relative z-10 ${
-                                isWinner ? 'text-emerald-400 font-black drop-shadow-sm' : 'text-slate-300'
+                                isWinner ? 'text-indigo-400 font-black drop-shadow-sm' : 'text-slate-300'
                             }`}>
                               {displayValue}
-                              {isWinner && <span className="text-[10px] ml-1 text-emerald-500 align-top">▲</span>}
+                              {isWinner && <span className="text-[10px] ml-1 text-indigo-500 align-top">▲</span>}
                             </span>
                           ) : (
                             <div className="h-4 w-12 bg-slate-800 rounded animate-pulse mx-auto" />
@@ -228,7 +222,7 @@ export const ComparePage = () => {
             onClick={() => searchInputRef.current?.focus()}
             className="group relative bg-slate-800 p-8 rounded-full mb-6 hover:bg-indigo-600 transition-all duration-300 hover:scale-110 shadow-2xl hover:shadow-indigo-500/40 cursor-pointer border border-slate-700 hover:border-indigo-400"
           >
-            <BarChart3 size={48} className="text-slate-500 group-hover:text-white transition-colors duration-300" />
+            <Scale size={48} className="text-slate-500 group-hover:text-white transition-colors duration-300" />
             <div className="absolute -top-2 -right-2 bg-indigo-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                <ArrowUpRight size={16} />
             </div>
