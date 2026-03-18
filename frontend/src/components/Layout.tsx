@@ -29,9 +29,11 @@ export const Layout = () => {
         
         {/* Logo Area */}
         <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-800 shrink-0">
-          <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-            S
-          </div>
+          <img 
+            src="/stratos.png" 
+            alt="StratosScout Logo" 
+            className="w-10 h-10" // Usa tus clases de Tailwind aquí
+          />
           <span className="ml-3 font-bold text-lg hidden lg:block tracking-tight text-white">
             Stratos<span className="text-indigo-400">Scout</span>
           </span>
