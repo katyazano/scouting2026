@@ -27,7 +27,7 @@ export const AnalysisTable = ({ data }: Props) => {
     { key: 'total_avg', label: 'Total Avg', align: 'center', highlight: true },
     { key: 'auto_avg', label: 'Auto Avg', align: 'center' },
     { key: 'tele_avg', label: 'Teleop Avg', align: 'center' },
-    { key: 'fuel_avg', label: 'Notes Avg', align: 'center' },
+    { key: 'fuel_avg', label: 'Fuel Avg', align: 'center' },
     { key: 'auto_success', label: 'Auto %', align: 'center', isPercent: true },
     { key: 'hang_success', label: 'Hang %', align: 'center', isPercent: true },
     { key: 'break_rate', label: 'Break %', align: 'center', isPercent: true },

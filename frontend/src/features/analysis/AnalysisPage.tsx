@@ -13,7 +13,7 @@ const METRICS_OPTS = [
   { key: 'match_avg_total_pts', label: 'Total Avg' },
   { key: 'auto_total_pts', label: 'Auto Pts' },
   { key: 'tele_total_pts', label: 'Teleop Pts' },
-  { key: 'tele_avg_fuel', label: 'Teleop Notes' }, // O "Game Pieces"
+  { key: 'tele_avg_fuel', label: 'Teleop Fuel' }, // O "Game Pieces"
   { key: 'auto_success_rate', label: 'Auto Accuracy %' },
   { key: 'tele_hang_success_rate', label: 'Hang Success %' },
   { key: 'break_rate', label: 'Break Rate' },
@@ -62,7 +62,7 @@ export const AnalysisPage = () => {
     const mapHangRate = createMap(qHangRate);
     const mapBreak = createMap(qBreak);
 
-    return teamsList.map(t => ({
+    return teamsList.map((t: typeof teamsList[number]) => ({
         team_num: t.team_num,
         nickname: t.nickname,
         total_avg: mapTotal.get(t.team_num) || 0,

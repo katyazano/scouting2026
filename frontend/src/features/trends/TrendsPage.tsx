@@ -217,7 +217,7 @@ export const TrendsPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <LeaderboardCard title="Top Overall" icon={Trophy} data={rankings.total} colorClass="text-yellow-400 bg-yellow-400/5" />
         <LeaderboardCard title="Top Auto" icon={Zap} data={rankings.auto} colorClass="text-indigo-400 bg-indigo-400/5" />
-        <LeaderboardCard title="Top Teleop Notes" icon={Target} data={rankings.teleop} colorClass="text-emerald-400 bg-emerald-400/5" />
+        <LeaderboardCard title="Top Teleop Fuel" icon={Target} data={rankings.teleop} colorClass="text-emerald-400 bg-emerald-400/5" />
         <LeaderboardCard title="Top Hang %" icon={Activity} data={rankings.hang} colorClass="text-cyan-400 bg-cyan-400/5" isPercent={true} />
       </div>
     </div>
