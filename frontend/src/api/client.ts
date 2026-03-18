@@ -41,7 +41,6 @@ export const setServerIP = (ip: string) => {
 // 2. PERSISTENCIA (LOCAL STORAGE)
 // ==========================================
 
-// Guardar el estado actual en el navegador
 const saveToLocalStorage = () => {
     try {
         const json = JSON.stringify(IN_MEMORY_DB);
@@ -51,15 +50,33 @@ const saveToLocalStorage = () => {
     }
 };
 
-// Borrar datos (Reset de emergencia)
 export const clearLocalData = () => {
     localStorage.removeItem(BACKUP_KEY);
     window.location.reload();
 };
 
 // ==========================================
-// 3. CARGA INICIAL (CSV Base + Backup)
+// 3. CARGA INICIAL (Modo Offline-First)
 // ==========================================
+
+// NUEVA FUNCIÓN: Inicia la app blindada contra falta de internet
+export const initializeBaseData = async () => {
+    let csvText = "";
+    
+    try {
+        // Intentamos cargar el CSV que subiste a Vercel
+        const response = await fetch('/data/full_test_scouting_data.csv');
+        if (!response.ok) throw new Error("No hay conexión o no existe el archivo");
+        csvText = await response.text();
+    } catch (error) {
+        console.warn("⚠️ Arrancando en Modo Offline. Solo se usará la memoria local.");
+        // Le damos un encabezado falso para que PapaParse no truene
+        csvText = "timestamp,team_num,match_num\n"; 
+    }
+
+    // Pase lo que pase (haya CSV o no), procedemos a cargar
+    await loadDataIntoMemory(csvText);
+};
 
 export const loadDataIntoMemory = async (csvText: string) => {
   return new Promise((resolve) => {
@@ -70,7 +87,7 @@ export const loadDataIntoMemory = async (csvText: string) => {
         // A. Datos del CSV estático (Base / Vercel)
         const csvData = processRawData(results.data);
         
-        // B. Datos recuperados del LocalStorage (Nuevos/Escaneados previamente)
+        // B. Datos recuperados del LocalStorage (Nuevos/Escaneados)
         let localData: ScoutRecord[] = [];
         const backupJson = localStorage.getItem(BACKUP_KEY);
         
@@ -85,21 +102,16 @@ export const loadDataIntoMemory = async (csvText: string) => {
         }
 
         // C. MERGE INTELIGENTE (Prioridad al LocalStorage)
-        // Usamos un Map combinando "match-team" para evitar duplicados
         const mergedMap = new Map();
         
-        // 1. Cargamos base
         csvData.forEach(d => mergedMap.set(`${d.match_num}-${d.team_num}`, d));
-        // 2. Sobrescribimos con datos locales (más recientes)
         localData.forEach(d => mergedMap.set(`${d.match_num}-${d.team_num}`, d));
         
-        // 3. Actualizamos memoria
         IN_MEMORY_DB = Array.from(mergedMap.values());
         
-        // 4. Actualizamos el backup con la fusión completa
-        saveToLocalStorage();
+        saveToLocalStorage(); // Actualiza el backup con la fusión
 
-        console.log(`✅ Base de datos lista: ${IN_MEMORY_DB.length} registros.`);
+        console.log(`✅ Base de datos lista: ${IN_MEMORY_DB.length} registros totales.`);
         resolve(true);
       }
     });
@@ -120,7 +132,7 @@ const QR_SCHEMA = [
     "start_zone",          // 6
     "auto_active",         // 7
     "auto_hang",           // 8
-    "auto_pts",            // 9  <-- POSICIÓN CORRECTA AHORA
+    "auto_pts",            // 9  
     "auto_comm",           // 10
     "tele_pts",            // 11
     "tele_comm",           // 12
@@ -159,25 +171,20 @@ const arrayToObject = (row: any[]) => {
 export const addMatchesToMemory = (newMatchesInput: any) => {
     console.log("📥 Recibiendo datos:", newMatchesInput);
 
-    // 1. Normalizar
     const normalizedData = normalizeQrData(newMatchesInput);
     if (normalizedData.length === 0) return { success: false, message: "Formato incorrecto" };
 
-    // 2. Parches de Datos (Fixes)
     const hopperMapReverse: Record<string, number> = { '0-20': 0, '21-40': 1, '41-60': 2, '61+': 3 };
     
     const fixedData = normalizedData.map(d => {
-        // Fix Hopper String -> Int
         if (typeof d.adv_hoppercapacity === 'string' && hopperMapReverse[d.adv_hoppercapacity] !== undefined) {
             d.adv_hoppercapacity = hopperMapReverse[d.adv_hoppercapacity];
         }
         return d;
     });
 
-    // 3. Procesar Tipos
     const cleanMatches = processRawData(fixedData);
     
-    // 4. Filtrar Duplicados
     const uniqueNew = cleanMatches.filter(newItem => {
         if (!newItem.team_num || !newItem.match_num) return false;
         const exists = IN_MEMORY_DB.some(existing => 
@@ -189,11 +196,9 @@ export const addMatchesToMemory = (newMatchesInput: any) => {
 
     if (uniqueNew.length === 0) return { success: false, message: "Datos duplicados" };
 
-    // 5. ACTUALIZAR MEMORIA Y DISCO
     IN_MEMORY_DB = [...IN_MEMORY_DB, ...uniqueNew];
-    saveToLocalStorage(); // <--- ESTO ASEGURA QUE PERSISTAN AL RECARGAR
+    saveToLocalStorage(); 
     
-    // 6. Intentar sincronizar con Bridge Local
     syncMatchesToLocalServer(uniqueNew);
 
     console.log(`✅ Agregados ${uniqueNew.length} registros.`);
@@ -215,10 +220,13 @@ export const fetchLiveCSV = async () => {
         if (!response.ok) throw new Error("Error en servidor local");
         
         const csvText = await response.text();
-        await loadDataIntoMemory(csvText); // Esto también actualizará el localStorage
+        await loadDataIntoMemory(csvText);
         return true;
     } catch (e) {
-        console.warn("Bridge local no disponible:", e);
+        console.warn("⚠️ Bridge local no disponible. Usando datos previos en memoria.");
+        // TRUCO OFFLINE: Si falla la conexión a la PC Central, al menos nos aseguramos
+        // de que se cargue lo que haya en la memoria del navegador.
+        await loadDataIntoMemory("timestamp,team_num,match_num\n");
         return false;
     }
 };

@@ -45,7 +45,7 @@ export default defineConfig({
       // Configuración del Service Worker (El "Cerebro" Offline)
       workbox: {
         // Guarda todos estos archivos en la memoria del dispositivo
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,csv}'],
         
         // MUY IMPORTANTE: Le dice a la PWA que NO intente interceptar ni cachear 
         // las llamadas a tu servidor local de Python (el bridge.py).

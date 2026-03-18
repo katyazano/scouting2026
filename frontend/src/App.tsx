@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
-// API Client (La versión offline que creamos)
-import { loadDataIntoMemory } from './api/client';
+// API Client (Importamos la nueva función blindada)
+import { initializeBaseData } from './api/client';
 
 // Componentes y Páginas
 import { Layout } from './components/Layout';
@@ -15,7 +15,6 @@ import { ComparePage } from './features/compare/ComparePage';
 import { TrendsPage } from './features/trends/TrendsPage';
 import { AnalysisPage } from './features/analysis/AnalysisPage';
 import { ScannerPage } from './features/sync/ScannerPage';
-
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,28 +32,19 @@ function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
-        console.log("Iniciando descarga de datos offline...");
+        console.log("Iniciando carga de datos (Online/Offline)...");
         
-        // 1. Buscamos el CSV en la carpeta pública
-        // Asegúrate de poner tu archivo en: public/data/full_test_scouting_data.csv
-        const response = await fetch('/data/full_test_scouting_data.csv');
-        
-        if (!response.ok) {
-          throw new Error(`No se encontró el archivo de datos (${response.status})`);
-        }
-
-        const csvText = await response.text();
-
-        // 2. Cargamos el CSV en el motor de análisis (analysisEngine.ts)
-        await loadDataIntoMemory(csvText);
+        // 1. Delegamos toda la lógica a nuestra función segura.
+        // Si hay internet, lee el CSV. Si no hay internet, recupera del navegador en silencio.
+        await initializeBaseData();
         
         console.log("Motor de análisis listo.");
         setIsDataReady(true);
 
       } catch (error: any) {
-        console.error("Error fatal cargando datos:", error);
+        console.error("Error crítico iniciando app:", error);
         setLoadingError(error.message);
-        // Aun con error, permitimos cargar la app (estará vacía)
+        // Aun con error imprevisto, permitimos cargar la app para no dejar pantalla en negro
         setIsDataReady(true);
       }
     };
@@ -68,7 +58,7 @@ function App() {
       <div className="h-screen w-full bg-slate-950 flex flex-col items-center justify-center text-white">
         <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
         <h2 className="text-xl font-bold">Cargando Sistema de Análisis...</h2>
-        <p className="text-slate-400 text-sm mt-2">Procesando base de datos local</p>
+        <p className="text-slate-400 text-sm mt-2">Sincronizando base de datos...</p>
       </div>
     );
   }
@@ -87,7 +77,6 @@ function App() {
             <Route path="trends" element={<TrendsPage />} />
             <Route path="analysis" element={<AnalysisPage />} />
             
-            {/* Si agregaste la página de Scanner para nuevos datos: */}
             <Route path="scanner" element={<ScannerPage />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />

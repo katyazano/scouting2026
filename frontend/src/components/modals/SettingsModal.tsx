@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { X, RefreshCw, Wifi, CheckCircle2, AlertCircle, Trash2} from 'lucide-react';
-import { setServerIP, fetchLiveCSV, getStoredIP, clearLocalData} from '../../api/client'; 
+import { useState, useRef } from 'react';
+import { X, RefreshCw, Wifi, CheckCircle2, AlertCircle, Trash2, Upload } from 'lucide-react';
+import { setServerIP, fetchLiveCSV, getStoredIP, clearLocalData, loadDataIntoMemory } from '../../api/client'; 
 import { useQueryClient } from '@tanstack/react-query';
 
 // --- COMPONENTE INTERNO: ESTATUS DE CONEXIÓN ---
 const ConnectionStatus = () => {
-    const [ip, setIp] = useState(getStoredIP()); // Tu IP default (recuperada del localStorage)
+    const [ip, setIp] = useState(getStoredIP()); 
     const [status, setStatus] = useState<"idle" | "connected" | "error">("idle");
     const [isLoading, setIsLoading] = useState(false);
     
-    // Para refrescar las gráficas si la conexión es exitosa
     const queryClient = useQueryClient();
 
     const handleConnect = async () => {
@@ -26,7 +25,6 @@ const ConnectionStatus = () => {
 
         if (success) {
             setStatus("connected");
-            // ¡Magia! Esto hace que las gráficas se actualicen solas
             queryClient.invalidateQueries(); 
         } else {
             setStatus("error");
@@ -34,7 +32,7 @@ const ConnectionStatus = () => {
     };
 
     return (
-        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 mb-4 shadow-inner">
+        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 mb-6 shadow-inner">
             <h3 className="text-white font-bold mb-4 flex items-center gap-2">
                 <Wifi size={20} className="text-indigo-500"/> Conexión Central
             </h3>
@@ -88,13 +86,37 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
+  // Referencia para el input de archivo oculto
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!isOpen) return null;
+
+  // --- FUNCIÓN PARA LEER CSV OFFLINE ---
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const csvText = e.target?.result as string;
+        await loadDataIntoMemory(csvText);
+        alert(`✅ Archivo "${file.name}" cargado exitosamente en la memoria.`);
+        window.location.reload(); 
+      } catch (error) {
+        alert("❌ Error al procesar el archivo CSV.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
 
   const handleReset = () => {
       if (confirm("¿ESTÁS SEGURO? \nEsto borrará todos los datos guardados en el navegador (pero NO borrará el CSV de la computadora central). \nLa página se recargará.")) {
           clearLocalData();
       }
-    };
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in">
@@ -107,12 +129,38 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={20} /></button>
         </div>
 
-        <div className="p-6 bg-slate-900/50">
-          {/* Aquí va tu componente ConnectionStatus */}
+        <div className="p-6 bg-slate-900/50 max-h-[80vh] overflow-y-auto">
+          {/* 1. SECCIÓN DE CONEXIÓN POR RED */}
           <ConnectionStatus /> 
 
-          {/* ZONA DE PELIGRO */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
+          {/* 2. NUEVA SECCIÓN: CARGA MANUAL OFFLINE */}
+          <div className="mb-8 pt-2">
+              <h4 className="text-indigo-400 font-bold text-sm mb-3 flex items-center gap-2">
+                  <Upload size={16}/> Carga Manual (Offline Backup)
+              </h4>
+              <p className="text-xs text-slate-400 mb-4">
+                  Sube un archivo <code>.csv</code> directamente desde tu dispositivo si perdiste conexión con el servidor central.
+              </p>
+              
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden" 
+              />
+              
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-white text-sm py-3 rounded-lg transition-colors border border-slate-600 flex justify-center items-center gap-2"
+              >
+                  <Upload size={18} />
+                  Seleccionar archivo .csv
+              </button>
+          </div>
+
+          {/* 3. ZONA DE PELIGRO */}
+          <div className="pt-6 border-t border-slate-800">
               <h4 className="text-red-400 font-bold text-sm mb-2 flex items-center gap-2">
                   <Trash2 size={16}/> Zona de Peligro
               </h4>
