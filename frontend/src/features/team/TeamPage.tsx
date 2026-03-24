@@ -103,9 +103,9 @@ export const TeamPage = () => {
            {/* <--- 4. Conectar la gráfica con el estado del Modal */}
            {trendData ? (
              <MatchTrendChart 
-               data={trendData} 
-               onMatchClick={(match) => setSelectedMatch(match)} 
-             />
+              data={trendData} 
+              onMatchClick={(match) => setSelectedMatch(match)}  // <--- ¡Esto está excelente!
+            />
            ) : (
              <div className="p-10 text-slate-500 text-center border border-dashed border-slate-800 rounded-xl">No record</div>
            )}

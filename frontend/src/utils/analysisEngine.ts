@@ -133,7 +133,7 @@ export const processRawData = (data: any[]): ScoutRecord[] => {
 };
 
 
-// --- 3. CÁLCULO DE TENDENCIAS Y ANOMALÍAS (Equivalente a team_trend) ---
+// --- 3. CÁLCULO DE TENDENCIAS Y ANOMALÍAS ---
 
 export const calculateTeamTrend = (allData: ScoutRecord[], teamNum: number) => {
   const teamData = allData.filter(d => d.team_num === teamNum);
@@ -141,20 +141,20 @@ export const calculateTeamTrend = (allData: ScoutRecord[], teamNum: number) => {
 
   const points = teamData.map(d => d.match_total_pts);
   
-  // Evitar crash si todos son 0 o 1 dato
   const avg = points.length > 0 ? mean(points) : 0;
   const standardDev = points.length > 1 ? standardDeviation(points) : 1; 
 
   return teamData.map(d => {
     const pts = d.match_total_pts;
-    // Si la desviación es 0, el zScore es 0
     const zScore = standardDev === 0 ? 0 : (pts - avg) / standardDev;
     
     return {
+      ...d, // <--- 🚀 MAGIA: Esto arrastra TODOS los comentarios y booleanos originales
       match_num: d.match_num,
+      total_pts: pts, // Aseguramos compatibilidad con AreaChart
       match_total_pts: pts,
       z_score: Number(zScore.toFixed(2)),
-      anomaly: Math.abs(zScore) > 1.5 // Marca anomalía si se desvía más de 1.5 sigmas
+      anomaly: Math.abs(zScore) > 1.5
     };
   });
 };
@@ -266,17 +266,14 @@ export const calculateTeamOverview = (allData: ScoutRecord[], teamNum: number) =
     
     // Historial completo para gráficas
     trend: teamData.map(d => ({
+        ...d, // <--- 🚀 MAGIA: Arrastra la data plana
         match_num: d.match_num,
         match_type: d.match_type === "Qualification" ? "Quals" : d.match_type,
         auto_pts: d.auto_pts,
         tele_pts: d.tele_pts,
         total_pts: d.match_total_pts,
-        details: {
-            scouter: d.scouter,
-            broke: d.adv_broke === 1,
-            fixed: d.adv_fixed === 1,
-            climb_level: d.tele_hang
-        }
+        // Ya no necesitamos crear el sub-objeto "details" 
+        // porque nuestro Modal ahora es más inteligente y lee directo de la raíz.
     })),
 
     overall: {

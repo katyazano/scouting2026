@@ -31,13 +31,13 @@ const CustomTooltip = ({ active, payload }: any) => {
         </div>
         <div className="space-y-1.5 text-xs font-mono">
           <div className="flex justify-between text-indigo-400">
-            <span>Auto:</span> <span className="font-bold">{data.auto_pts.toFixed(0)}</span>
+            <span>Auto:</span> <span className="font-bold">{data.auto_pts?.toFixed(0) || 0}</span>
           </div>
           <div className="flex justify-between text-emerald-400">
-            <span>Teleop:</span> <span className="font-bold">{data.tele_pts.toFixed(0)}</span>
+            <span>Teleop:</span> <span className="font-bold">{data.tele_pts?.toFixed(0) || 0}</span>
           </div>
           <div className="flex justify-between text-white font-bold border-t border-slate-800 pt-1 mt-1 text-sm">
-            <span>Total:</span> <span>{data.total_pts.toFixed(0)} pts</span>
+            <span>Total:</span> <span>{data.total_pts?.toFixed(0) || 0} pts</span>
           </div>
         </div>
         <div className="mt-2 text-[10px] text-center text-slate-500 italic">
@@ -62,26 +62,26 @@ const CustomizedDot = (props: any) => {
 };
 
 // 3. PUNTO ACTIVO (HITBOX GIGANTE)
-// Este componente se renderiza SOLO en la columna donde está el mouse.
 const ActiveHitboxDot = (props: any) => {
+    // Recibimos los props automáticos de Recharts + nuestro onMatchClick
     const { cx, cy, payload, onMatchClick } = props;
     
     return (
       <g 
         cursor="pointer"
         onClick={(e) => {
-            e.stopPropagation(); // Detiene propagación
+            e.stopPropagation(); 
             console.log("🎯 HITBOX CLICK:", payload);
             if (onMatchClick) onMatchClick(payload);
         }}
       >
         {/* A. RECTÁNGULO INVISIBLE (EL TRUCO) */}
-        {/* Dibuja un área clickeable desde arriba (y=0) hasta abajo (height=chartHeight) */}
+        {/* Centrado verticalmente alrededor de 'cy' para asegurar que cubra toda la gráfica sin importar el tamaño */}
         <rect 
-            x={cx - 20} // 20px a la izquierda del punto
-            y={0}       // Desde el techo de la gráfica
-            width={40}  // 40px de ancho total para clickear fácil
-            height={1000} // Altura exagerada para cubrir toda la gráfica
+            x={cx - 20} 
+            y={cy - 500} 
+            width={40}  
+            height={1000} 
             fill="transparent" 
             className="outline-none"
         />
@@ -90,12 +90,12 @@ const ActiveHitboxDot = (props: any) => {
         <circle 
             cx={cx} cy={cy} r={7} 
             fill="#fff" stroke="#6366f1" strokeWidth={2} 
-            pointerEvents="none" // Para que el click pase al rect de atrás si es necesario
+            pointerEvents="none" 
         />
         
-        {/* C. LÍNEA VERTICAL GUÍA (OPCIONAL, PERO AYUDA) */}
+        {/* C. LÍNEA VERTICAL GUÍA */}
         <line 
-            x1={cx} y1={0} x2={cx} y2={1000} 
+            x1={cx} y1={cy - 500} x2={cx} y2={cy + 500} 
             stroke="#6366f1" strokeWidth={1} strokeDasharray="4 4" opacity={0.5} 
             pointerEvents="none"
         />
@@ -117,7 +117,7 @@ export const MatchTrendChart = ({ data, onMatchClick }: Props) => {
         </h3>
       </div>
       
-      <div className="flex-1 min-h-0 w-full">
+      <div className="flex-1 min-h-0 w-full relative">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
             data={data} 
@@ -144,7 +144,6 @@ export const MatchTrendChart = ({ data, onMatchClick }: Props) => {
             />
             <YAxis tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }} tickLine={false} axisLine={false} />
             
-            {/* Quitamos el cursor del tooltip porque ahora lo dibujamos nosotros en el ActiveDot */}
             <Tooltip content={<CustomTooltip />} cursor={false} />
             
             <Area 
@@ -155,11 +154,11 @@ export const MatchTrendChart = ({ data, onMatchClick }: Props) => {
               fillOpacity={1} 
               fill="url(#colorTotal)"
               
-              // 1. Punto estático (siempre visible)
-              dot={<CustomizedDot />}
+              /* 1. Usamos una función anónima para inyectar correctamente los props */
+              dot={(props: any) => <CustomizedDot {...props} />}
               
-              // 2. Punto activo (HITBOX GIGANTE + VISUAL)
-              activeDot={<ActiveHitboxDot onMatchClick={onMatchClick} />}
+              /* 2. Mezclamos los props de Recharts con tu onMatchClick */
+              activeDot={(props: any) => <ActiveHitboxDot {...props} onMatchClick={onMatchClick} />}
             />
           </AreaChart>
         </ResponsiveContainer>

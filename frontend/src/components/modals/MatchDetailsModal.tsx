@@ -3,13 +3,21 @@ import { X, AlertTriangle, Wrench, User } from 'lucide-react';
 interface MatchDetailsProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any; // O define la interfaz MatchData si quieres ser estricto
+  data: any; 
 }
 
 export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) => {
   if (!isOpen || !data) return null;
 
-  const { match_type, match_num,  auto_pts, details, tele_pts, total_pts } = data;
+  // 1. Extraemos los datos de forma segura y directa desde el objeto plano
+  // Si algo viene vacío, le ponemos un valor por defecto para evitar errores.
+  const match_type = data.match_type || 'Match';
+  const match_num = data.match_num || '?';
+  const auto_pts = Number(data.auto_pts) || 0;
+  const tele_pts = Number(data.tele_pts) || 0;
+  // Calculamos el total por si la gráfica no lo envía explícitamente
+  const total_pts = data.total_pts !== undefined ? Number(data.total_pts) : (auto_pts + tele_pts); 
+  const scouter = data.scouter || 'N/A';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -22,10 +30,15 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
               {match_type} {match_num}
-              {details.broke && <span className="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded border border-red-500/50 flex items-center gap-1"><AlertTriangle size={12}/> BROKE</span>}
+              {/* Usamos adv_broke que es el nombre real en tu CSV */}
+              {data.adv_broke && (
+                <span className="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded border border-red-500/50 flex items-center gap-1">
+                  <AlertTriangle size={12}/> BROKE
+                </span>
+              )}
             </h3>
             <div className="text-slate-400 text-xs flex items-center gap-1 mt-1">
-              <User size={12}/> Scouter: {details.scouter}
+              <User size={12}/> Scouter: {scouter}
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
@@ -54,38 +67,49 @@ export const MatchDetailsModal = ({ isOpen, onClose, data }: MatchDetailsProps) 
 
           {/* Comentarios (Lo más valioso) */}
           <div className="space-y-4">
-            {details.auto_comm && (
+            
+            {data.auto_comm && (
               <div>
                 <h4 className="text-indigo-300 text-xs font-bold uppercase mb-1">Auto comments</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 italic">
-                  "{details.auto_comm}"
+                  "{data.auto_comm}"
                 </p>
               </div>
             )}
 
-            {details.tele_comm && (
+            {data.tele_comm && (
               <div>
                 <h4 className="text-emerald-300 text-xs font-bold uppercase mb-1">Teleop comments</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 italic">
-                  "{details.tele_comm}"
+                  "{data.tele_comm}"
                 </p>
               </div>
             )}
 
-            {details.notes && (
+            {/* Usamos adv_comments que es el campo correcto de tus ajustes de CSV */}
+            {data.adv_comments && (
               <div>
                 <h4 className="text-slate-400 text-xs font-bold uppercase mb-1">General notes</h4>
                 <p className="text-slate-300 text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                  {details.notes}
+                  {data.adv_comments}
                 </p>
               </div>
             )}
+            
+            {/* Mensaje de fallback si no hay ningún comentario en el match */}
+            {(!data.auto_comm && !data.tele_comm && !data.adv_comments) && (
+              <p className="text-slate-500 text-sm italic text-center py-2">
+                Sin comentarios registrados para este partido.
+              </p>
+            )}
+
           </div>
           
           {/* Flags Extras */}
-          {details.fixed && (
-             <div className="flex items-center gap-2 text-green-400 text-sm bg-green-900/20 p-2 rounded border border-green-900/50">
-                <Wrench size={16}/> The robot was fixed in this match.
+          {/* Usamos adv_fixed que es el nombre real de tu estructura */}
+          {data.adv_fixed && (
+             <div className="flex items-center gap-2 text-green-400 text-sm bg-green-900/20 p-3 rounded-lg border border-green-900/50">
+                <Wrench size={16}/> El robot se reparó durante este partido.
              </div>
           )}
         </div>
